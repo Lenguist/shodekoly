@@ -1,0 +1,10 @@
+# OS / editor noise
+.DS_Store
+__pycache__/
+*.pyc
+
+# UNLP shared-task: extracted and generated artifacts (keep provided dev.zip + readmes)
+unlp-2026-shared-task/data/**/dev/**/*.pdf
+unlp-2026-shared-task/data/**/dev-text/**/*.txt
+unlp-2026-shared-task/data/**/dev-text-stats.json
+unlp-2026-shared-task/data/dev-text-stats.json
