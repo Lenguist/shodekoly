@@ -47,3 +47,74 @@ Outputs:
 Notes:
 - Extraction details/journal: `pdf-to-text extractoin/pdf-to-text-journal.md`
 - Generated PDFs/text/stats are ignored by git (see root `.gitignore`).
+
+#### 3) Build the UNLP corpus index
+
+Converts extracted text files into a single JSONL corpus that the eval harness and baselines consume:
+
+```bash
+python converters/build_unlp_corpus.py
+```
+
+This reads `unlp-2026-shared-task/data/domain_*/dev-text/*.txt`, splits by form-feed (`\f`) for page boundaries, and writes `data/unlp_corpus.jsonl` (41 documents, ~1,118 pages).
+
+#### 4) Run baselines
+
+All baselines go through the unified eval harness. Each produces predictions and prints scores.
+
+**Phase 1 — TF-IDF (no extra dependencies):**
+
+```bash
+python eval.py --corpus unlp --system baselines/unlp_tfidf_baseline.py
+```
+
+**Phase 2 — Embedding retrieval (requires sentence-transformers):**
+
+```bash
+pip install sentence-transformers
+python eval.py --corpus unlp --system baselines/unlp_embedding_baseline.py
+```
+
+**Phase 3 — API-based (requires API key):**
+
+```bash
+# Claude
+export ANTHROPIC_API_KEY=your-key
+python eval.py --corpus unlp --system baselines/unlp_api_baseline.py
+
+# OpenAI
+export OPENAI_API_KEY=your-key
+python baselines/unlp_api_baseline.py \
+    --questions data/unlp_dev.jsonl \
+    --corpus data/unlp_corpus.jsonl \
+    --output /tmp/predictions.jsonl \
+    --provider openai
+python eval.py --corpus unlp --predictions /tmp/predictions.jsonl
+```
+
+#### Baseline results (dev set, 461 questions)
+
+| Baseline | Answer Acc | Doc Acc | Page Prox | UNLP Score |
+|----------|-----------|---------|-----------|------------|
+| TF-IDF (Phase 1) | 40.78% | 77.87% | 0.479 | 51.83% |
+| Embedding (Phase 2) | TBD | TBD | TBD | TBD |
+| API (Phase 3) | TBD | TBD | TBD | TBD |
+
+### Project structure
+
+```
+baselines/               Baseline systems
+  random_baseline.py       Random baseline (FEVER)
+  tfidf_baseline.py        TF-IDF baseline (SciFact/FEVER)
+  unlp_tfidf_baseline.py   TF-IDF baseline (UNLP)
+  unlp_embedding_baseline.py  Embedding baseline (UNLP)
+  unlp_api_baseline.py     API-based baseline (UNLP)
+converters/              Data format converters
+  build_unlp_corpus.py    Text files -> corpus JSONL
+  unlp_to_unified.py      UNLP CSV -> unified JSONL
+  scifact_to_unified.py   SciFact -> unified JSONL
+  fever_to_unified.py     FEVER -> unified JSONL
+data/                    Processed data files (JSONL)
+eval.py                  Unified evaluation harness
+claude-code-dev-log/     Development log and rationale
+```
